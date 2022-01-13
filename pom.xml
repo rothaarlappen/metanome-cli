@@ -51,7 +51,7 @@
         <dependency>
             <groupId>de.metanome</groupId>
             <artifactId>backend</artifactId>
-            <version>1.1-SNAPSHOT</version>
+            <version>1.2-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -70,29 +70,6 @@
             <artifactId>profiledb-store</artifactId>
             <version>0.1.1</version>
         </dependency>
-
-        <!-- Metacrate -->
-        <dependency>
-            <groupId>de.hpi.isg</groupId>
-            <artifactId>mdms-model</artifactId>
-            <version>0.0.3-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>de.hpi.isg</groupId>
-            <artifactId>mdms-dependencies</artifactId>
-            <version>0.0.3-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>de.hpi.isg</groupId>
-            <artifactId>mdms-metanome</artifactId>
-            <version>0.0.3-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>de.hpi.isg</groupId>
-            <artifactId>mdms-clients</artifactId>
-            <version>0.0.3-SNAPSHOT</version>
-        </dependency>
-
 
         <!-- Hadoop -->
         <dependency>

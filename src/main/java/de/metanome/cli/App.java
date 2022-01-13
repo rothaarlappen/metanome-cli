@@ -6,13 +6,7 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 import com.google.common.base.Preconditions;
-import de.hpi.isg.mdms.clients.MetacrateClient;
-import de.hpi.isg.mdms.clients.parameters.MetadataStoreParameters;
-import de.hpi.isg.mdms.clients.util.MetadataStoreUtil;
-import de.hpi.isg.mdms.metanome.MetacrateResultReceiver;
-import de.hpi.isg.mdms.model.MetadataStore;
-import de.hpi.isg.mdms.model.targets.Schema;
-import de.hpi.isg.mdms.model.targets.Target;
+
 import de.hpi.isg.profiledb.ProfileDB;
 import de.hpi.isg.profiledb.store.model.Experiment;
 import de.hpi.isg.profiledb.store.model.Subject;
@@ -133,14 +127,7 @@ public class App {
     } catch (Exception e) {
       LOG.error("Algorithm crashed.", e);
     } finally {
-      if (resultReceiver instanceof MetacrateResultReceiver) {
-        try {
-          ((MetacrateResultReceiver) resultReceiver).getMetadataStore().flush();
-        } catch (Exception e) {
-          LOG.error("Could not flush Metacrate.", e);
-        }
-      }
-
+      
       if (tempFileGenerator != null) {
         tempFileGenerator.cleanUp();
       }
@@ -163,17 +150,6 @@ public class App {
         break;
       default:
         LOG.warn("Unknown output mode \"{}\". Defaulting to \"file\"", parameters.output);
-      case "crate":
-        if (resultReceiver instanceof MetacrateResultReceiver) {
-          try {
-            MetacrateResultReceiver metacrateResultReceiver = (MetacrateResultReceiver) resultReceiver;
-            metacrateResultReceiver.close();
-            break;
-          } catch (Exception e) {
-            LOG.error("Storing the result failed.", e);
-            System.exit(4);
-          }
-        }
       case "file!":
       case "file":
       case "none":
@@ -222,30 +198,7 @@ public class App {
       } catch (FileNotFoundException e) {
         throw new RuntimeException(e);
       }
-    } else if (parameters.output.startsWith("crate:")) {
-      int lastColonIndex = parameters.output.lastIndexOf(":");
-      if (lastColonIndex == "crate:".length() - 1) {
-        throw new IllegalArgumentException(
-            String.format("Could not parse output \"%s\".", parameters.output));
-      }
-      String scopeIdentifier = parameters.output.substring(lastColonIndex + 1);
-      String cratePath = parameters.output.substring("crate:".length(), lastColonIndex);
-      MetadataStoreParameters metadataStoreParameters = new MetadataStoreParameters();
-      metadataStoreParameters.metadataStore = cratePath;
-      MetadataStore metadataStore = MetadataStoreUtil.loadMetadataStore(metadataStoreParameters);
-      Target scope = metadataStore.getTargetByName(scopeIdentifier);
-      if (scope == null) {
-        throw new IllegalArgumentException("No such schema element: \"" + scopeIdentifier + "\".");
-      }
-      int schemaId = metadataStore.getIdUtils().getSchemaId(scope.getId());
-      Schema schema = metadataStore.getSchemaById(schemaId);
-      return new MetacrateResultReceiver(
-          metadataStore,
-          schema,
-          Collections.singleton(scope),
-          String.format("%s (%s, %s)", parameters.algorithmClassName, new Date(), "%s")
-      );
-    }
+    } 
 
     boolean isCaching;
     if (parameters.output.startsWith("file:")) {
@@ -555,6 +508,9 @@ public class App {
         dbSystem = DbSystem.PostgreSQL;
       } else if ("mysql".equalsIgnoreCase(dbType)) {
         dbSystem = DbSystem.MySQL;
+      } else if ("sqlserver".equalsIgnoreCase(dbType) || "mssql".equalsIgnoreCase(dbType)) {
+        jdbcUrl = String.format("jdbc:%s:%s;databaseName=%s", host,port,dbname);
+        dbSystem = DbSystem.MsSQL;
       } else {
         // TODO: Consider other DB types. But it does not seem that this is a crucial piece of information for Metanome.
       }
@@ -704,11 +660,6 @@ public class App {
     if (algorithm instanceof MultivaluedDependencyAlgorithm) {
       ((MultivaluedDependencyAlgorithm) algorithm).setResultReceiver(resultReceiver);
       isAnyResultReceiverConfigured = true;
-    }
-
-    if (algorithm instanceof MetacrateClient && resultReceiver instanceof MetacrateResultReceiver) {
-      ((MetacrateClient) algorithm)
-          .setMetadataStore(((MetacrateResultReceiver) resultReceiver).getMetadataStore());
     }
 
     if (!isAnyResultReceiverConfigured) {
